@@ -1,0 +1,160 @@
+import tensorflow as tf
+from tensorflow.keras import preprocessing
+import tensorflow as tf
+from tensorflow.keras import preprocessing
+import av
+from moviepy.editor import VideoFileClip
+import imageio
+import cv2
+from scipy.io import wavfile
+from pydub import AudioSegment
+import librosa
+import cv2
+import librosa
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras import layers, models
+
+# Function to extract audio features from a video file
+def extract_audio_features(video_path):
+    cap = cv2.VideoCapture(video_path)
+    audio_features = []
+
+    while True:
+        ret, frame = cap.read()
+
+        if not ret:
+            break
+
+        # Assuming mono audio for simplicity
+        audio_frame = frame.mean(axis=2)
+        audio_features.append(audio_frame)
+
+    cap.release()
+    return np.array(audio_features)
+
+# Function to create a simple neural network model
+def create_audio_model(input_shape):
+    model = models.Sequential()
+    model.add(layers.Flatten(input_shape=input_shape))
+    model.add(layers.Dense(128, activation='relu'))
+    model.add(layers.Dense(1, activation='sigmoid'))  # Adjust output layer based on your task
+
+    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    return model
+
+
+
+# Assuming a binary classification task (adjust labels accordingly)
+labels = np.array([0, 1, 0, 1, ...])  # Example labels for each video frame
+
+# Assuming you have a train-test split
+train_audio, test_audio = audio_features[:split_index], audio_features[split_index:]
+train_labels, test_labels = labels[:split_index], labels[split_index:]
+
+# Create and train the audio model
+input_shape = audio_features.shape[1:]
+audio_model = create_audio_model(input_shape)
+audio_model.fit(train_audio, train_labels, epochs=10, validation_data=(test_audio, test_labels))
+
+# Save the trained model
+audio_model.save('audio_model.h5')
+import cv2
+import numpy as np
+from skimage import filters
+from skimage.filters import gabor
+from skimage import io, color
+from skimage.transform import resize
+
+def preprocess_video(video_path, target_size=(256, 256)):
+    # Read video frames
+    cap = cv2.VideoCapture(video_path)
+    frames = []
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        # Resize frame to target size
+        frame_resized = resize(frame, target_size, anti_aliasing=True)
+
+        # Normalize pixel values to range [0, 1]
+        frame_normalized = frame_resized.astype(float) / 255.0
+
+        # Convert to grayscale for Gabor filter
+        frame_gray = color.rgb2gray(frame_normalized)
+
+        # Apply Gabor filter for texture analysis
+        frequency = 0.6
+        theta = 0.8
+        gabor_response_real, gabor_response_imag = gabor(frame_gray, frequency=frequency, theta=theta)
+
+        # Stack the original frame, normalized frame, and Gabor response
+        preprocessed_frame = np.dstack([frame_resized, frame_normalized, gabor_response_real, gabor_response_imag])
+
+        frames.append(preprocessed_frame)
+
+    cap.release()
+    return np.array(frames)
+
+# Example usage:
+video_file_path = 'your_video_file.mp4'
+video_frames = preprocess_video(video_file_path)
+import os
+import librosa
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras import layers, models
+from sklearn.model_selection import train_test_split
+
+# Function to extract MEL spectrogram features from audio files
+def extract_mel_spectrogram(file_path, n_mels=128, hop_length=512):
+    audio, _ = librosa.load(file_path, sr=None)
+    mel_spectrogram = librosa.feature.melspectrogram(audio, n_mels=n_mels, hop_length=hop_length)
+    return librosa.power_to_db(mel_spectrogram, ref=np.max)
+
+# Load your dataset, genuine and deepfake audio files
+genuine_files_path = 'path/to/genuine/audio'
+deepfake_files_path = 'path/to/deepfake/audio'
+
+genuine_files = [os.path.join(genuine_files_path, file) for file in os.listdir(genuine_files_path)]
+deepfake_files = [os.path.join(deepfake_files_path, file) for file in os.listdir(deepfake_files_path)]
+
+# Labels: 0 for genuine, 1 for deepfake
+labels = np.concatenate([np.zeros(len(genuine_files)), np.ones(len(deepfake_files))])
+
+# Combine and shuffle the data
+all_files = genuine_files + deepfake_files
+X = [extract_mel_spectrogram(file) for file in all_files]
+
+# Convert to numpy array
+X = np.array(X)
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, labels, test_size=0.2, random_state=42)
+
+# Define the deepfake detection model using a simple CNN
+model = models.Sequential([
+    layers.Input(shape=X_train.shape[1:]),
+    layers.Reshape((X_train.shape[1], X_train.shape[2], 1)),
+    layers.Conv2D(32, (3, 3), activation='relu'),
+    layers.MaxPooling2D((2, 2)),
+    layers.Conv2D(64, (3, 3), activation='relu'),
+    layers.MaxPooling2D((2, 2)),
+    layers.Flatten(),
+    layers.Dense(64, activation='relu'),
+    layers.Dense(1, activation='sigmoid')
+])
+
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+# Train the model
+model.fit(X_train, y_train, epochs=10, validation_data=(X_test, y_test))
+
+# Evaluate the model
+loss, accuracy = model.evaluate(X_test, y_test)
+print(f'Evaluation - Loss: {loss}, Accuracy: {accuracy}')
+
+# Save the trained model
+model.save('deepfake_audio_detection_model.h5')
