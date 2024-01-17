@@ -1,1 +1,8 @@
-D
+Meso4_DF
+capture_img.ipby ------give weightage for image fake detection.
+
+Audiomodel.ipby-------audio fake detection.
+
+deepfake_detection_train.ipby
+master_notebook.ipby
+model_play.ipby ------videofake detection.
